@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retail Sales Data Preparation Pipeline Preview</title>
+  <style>
+    :root {
+      --bg-1: #07111f;
+      --bg-2: #0d1b2a;
+      --panel: rgba(10, 24, 41, 0.8);
+      --border: rgba(148, 163, 184, 0.24);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --blue: #38bdf8;
+      --blue-soft: rgba(56, 189, 248, 0.12);
+      --teal: #2dd4bf;
+      --teal-soft: rgba(45, 212, 191, 0.12);
+      --amber: #f59e0b;
+      --amber-soft: rgba(245, 158, 11, 0.12);
+      --violet: #818cf8;
+      --violet-soft: rgba(129, 140, 248, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(45, 212, 191, 0.16), transparent 30%),
+        linear-gradient(160deg, var(--bg-1), var(--bg-2));
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .frame {
+      width: min(1280px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.75rem, 2.5vw, 2.6rem);
+      line-height: 1.05;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 760px;
+      line-height: 1.5;
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: center;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .step-card {
+      position: relative;
+      min-height: 160px;
+      padding: 18px 18px 20px;
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      background: rgba(9, 18, 30, 0.92);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+      overflow: hidden;
+    }
+
+    .step-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 6px;
+    }
+
+    .step-blue::before {
+      background: var(--blue);
+    }
+
+    .step-violet::before {
+      background: var(--violet);
+    }
+
+    .step-teal::before {
+      background: var(--teal);
+    }
+
+    .step-amber::before {
+      background: var(--amber);
+    }
+
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .step-blue .step-number {
+      background: #7dd3fc;
+    }
+
+    .step-violet .step-number {
+      background: #c4b5fd;
+    }
+
+    .step-teal .step-number {
+      background: #99f6e4;
+    }
+
+    .step-amber .step-number {
+      background: #fcd34d;
+    }
+
+    .step-title {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .step-body {
+      margin: 0;
+      font-size: 0.96rem;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .step-tool {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      letter-spacing: 0.03em;
+      color: var(--text);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+    }
+
+    .step-blue .step-tool {
+      background: var(--blue-soft);
+    }
+
+    .step-violet .step-tool {
+      background: var(--violet-soft);
+    }
+
+    .step-teal .step-tool {
+      background: var(--teal-soft);
+    }
+
+    .step-amber .step-tool {
+      background: var(--amber-soft);
+    }
+
+    .arrow-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 10px 0 4px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .arrow {
+      height: 2px;
+      flex: 1;
+      max-width: 72px;
+      background: linear-gradient(90deg, rgba(148, 163, 184, 0.05), rgba(148, 163, 184, 0.9));
+      position: relative;
+    }
+
+    .arrow::after {
+      content: "";
+      position: absolute;
+      right: -1px;
+      top: 50%;
+      width: 8px;
+      height: 8px;
+      border-top: 2px solid rgba(148, 163, 184, 0.9);
+      border-right: 2px solid rgba(148, 163, 184, 0.9);
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    .mini-legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .mini-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+    }
+
+    .dot-blue {
+      background: var(--blue);
+    }
+
+    .dot-violet {
+      background: var(--violet);
+    }
+
+    .dot-teal {
+      background: var(--teal);
+    }
+
+    .dot-amber {
+      background: var(--amber);
+    }
+
+    .footer {
+      margin-top: 12px;
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    code {
+      color: #bfdbfe;
+      font-family: "Consolas", "SFMono-Regular", monospace;
+    }
+
+    @media (max-width: 900px) {
+      .header {
+        flex-direction: column;
+      }
+
+      .legend {
+        justify-content: flex-start;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      .arrow-row {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="header">
+      <div>
+        <h1>Retail Sales Data Preparation Pipeline</h1>
+        <p>
+          This visual follows the project in 9 simple steps, from raw customer and order data
+          entering AWS to a final cleaned table ready for reporting.
+        </p>
+      </div>
+      <div class="legend">
+        <span>Simple 9-step architecture view</span>
+      </div>
+    </div>
+
+    <div class="steps" aria-label="9-step pipeline architecture">
+      <article class="step-card step-blue">
+        <div class="step-number">1</div>
+        <h2 class="step-title">Raw Data Is Created</h2>
+        <p class="step-body">Customer data and order data are generated by the upstream source.</p>
+        <span class="step-tool">Input Source</span>
+      </article>
+
+      <article class="step-card step-blue">
+        <div class="step-number">2</div>
+        <h2 class="step-title">Data Enters AWS</h2>
+        <p class="step-body">AWS Kinesis / Firehose collects the incoming raw records and prepares them for delivery.</p>
+        <span class="step-tool">AWS Kinesis / Firehose</span>
+      </article>
+
+      <article class="step-card step-blue">
+        <div class="step-number">3</div>
+        <h2 class="step-title">Data Lands In S3</h2>
+        <p class="step-body">The incoming files arrive in the S3 landing zone as the first stored raw copy.</p>
+        <span class="step-tool">S3 Landing</span>
+      </article>
+
+      <div class="arrow-row" aria-hidden="true"><div class="arrow"></div><span>next</span><div class="arrow"></div></div>
+      <div class="arrow-row" aria-hidden="true"><div class="arrow"></div><span>next</span><div class="arrow"></div></div>
+      <div class="arrow-row" aria-hidden="true"><div class="arrow"></div><span>next</span><div class="arrow"></div></div>
+
+      <article class="step-card step-violet">
+        <div class="step-number">4</div>
+        <h2 class="step-title">Airflow Starts The Pipeline</h2>
+        <p class="step-body">The Airflow DAG begins the workflow and controls the movement and loading steps.</p>
+        <span class="step-tool">Apache Airflow</span>
+      </article>
+
+      <article class="step-card step-violet">
+        <div class="step-number">5</div>
+        <h2 class="step-title">Files Move To Processing</h2>
+        <p class="step-body">Airflow moves the customer and order files from landing into the processing zone.</p>
+        <span class="step-tool">S3 Processing</span>
+      </article>
+
+      <article class="step-card step-teal">
+        <div class="step-number">6</div>
+        <h2 class="step-title">Snowflake Loads Raw Tables</h2>
+        <p class="step-body">Customer files load into <code>CUSTOMER_RAW</code> and order files load into <code>ORDERS_RAW</code>.</p>
+        <span class="step-tool">Snowflake Raw Tables</span>
+      </article>
+
+      <div class="arrow-row" aria-hidden="true"><div class="arrow"></div><span>next</span><div class="arrow"></div></div>
+      <div class="arrow-row" aria-hidden="true"><div class="arrow"></div><span>next</span><div class="arrow"></div></div>
+      <div class="arrow-row" aria-hidden="true"><div class="arrow"></div><span>next</span><div class="arrow"></div></div>
+
+      <article class="step-card step-teal">
+        <div class="step-number">7</div>
+        <h2 class="step-title">Data Is Transformed</h2>
+        <p class="step-body">Snowflake joins customer and order data, filters records, and aggregates the business output.</p>
+        <span class="step-tool">SQL Transformation</span>
+      </article>
+
+      <article class="step-card step-teal">
+        <div class="step-number">8</div>
+        <h2 class="step-title">Final Table Is Created</h2>
+        <p class="step-body"><code>ORDER_CUSTOMER_DATE_PRICE</code> becomes the cleaned, presentation-ready analytics table.</p>
+        <span class="step-tool">Reporting Output</span>
+      </article>
+
+      <article class="step-card step-amber">
+        <div class="step-number">9</div>
+        <h2 class="step-title">Files Are Archived</h2>
+        <p class="step-body">After the run finishes, processed files move into the archive so they are not treated as new input.</p>
+        <span class="step-tool">S3 Processed</span>
+      </article>
+    </div>
+
+    <div class="mini-legend">
+      <span><span class="dot dot-blue"></span>AWS ingestion</span>
+      <span><span class="dot dot-violet"></span>Airflow orchestration</span>
+      <span><span class="dot dot-teal"></span>Snowflake transformation</span>
+      <span><span class="dot dot-amber"></span>archive step</span>
+    </div>
+
+    <div class="footer">
+      <div>Open this file in a browser to preview the pipeline animation: <code>architecture_preview.html</code></div>
+      <div>This version uses a clean 9-step card layout so the full data flow is easier to explain in a demo or interview.</div>
+    </div>
+  </div>
+</body>
+</html>

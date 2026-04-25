@@ -1,526 +1,227 @@
-# 🚀 Real-Time Big Data Pipeline: AWS Kinesis → Airflow → Snowflake
+# Retail Sales Data Preparation Pipeline
 
-<div align="center">
+This repository contains an AWS Kinesis, S3, Airflow, and Snowflake pipeline for moving raw customer and order data into a final reporting table.
 
-![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
-![Apache Airflow](https://img.shields.io/badge/Apache%20Airflow-017CEE?style=for-the-badge&logo=Apache%20Airflow&logoColor=white)
-![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Kinesis](https://img.shields.io/badge/Amazon%20Kinesis-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white)
+## Overview
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
-![Pipeline](https://img.shields.io/badge/Pipeline-Real--time-orange)
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/snowflake-kinesis-airflow?style=social)](https://github.com/VikramKavuri/Real-Time-Data-Pipeline)
+The project implements a straightforward data engineering workflow:
 
-**Enterprise-Grade Real-Time Data Pipeline: From Stream to Insights in Minutes!** 🎯
+1. ingest raw files through AWS streaming infrastructure
+2. stage and move files across S3 zones with Airflow
+3. load the raw records into Snowflake
+4. create a final table for downstream reporting
 
-[View Architecture](#-architecture) 
+The repository is intentionally focused on the pipeline logic. It does not include full infrastructure provisioning, monitoring, or a dashboard layer.
 
+## What The Pipeline Does
 
+The Airflow DAG handles two datasets:
 
-</div>
+- `customers`
+- `orders`
 
----
+For each run, the pipeline:
 
-## 🌟 Overview
+- moves files from `landing/` to `processing/` in S3
+- loads customer and order files into Snowflake raw tables
+- moves processed files from `processing/` to `processed/`
+- builds a joined summary table named `ORDER_CUSTOMER_DATE_PRICE`
 
-Welcome to the **future of data engineering**! This project implements a **production-ready, scalable big data pipeline** that seamlessly integrates real-time streaming, automated ETL orchestration, and cloud data warehousing. Perfect for organizations looking to harness the power of their data in real-time!
+Each run is tagged with a batch identifier derived from the Airflow execution timestamp.
 
-### 🎯 What Makes This Special?
+## Architecture
 
-- **⚡ Real-Time Processing**: Sub-second latency from source to warehouse
-- **🔄 Fully Automated**: Zero manual intervention required
-- **📈 Infinitely Scalable**: Handle millions of events per second
-- **💰 Cost-Optimized**: Pay only for what you use with serverless components
-- **🔒 Enterprise Security**: End-to-end encryption and IAM-based access control
+![Retail Sales Data Preparation Pipeline Architecture](assets/architecture-overview.png)
 
----
+The image above shows the flow from raw input to final reporting output.
 
-## 💡 Business Value
+### Simple Step-By-Step Flow
 
-<table>
-<tr>
-<td width="50%">
+1. Raw customer data and order data are created by the source systems.
+2. AWS Kinesis / Firehose ingests those incoming data streams.
+3. The files land in Amazon S3 in the raw landing zone.
+4. Apache Airflow detects the new files and starts the pipeline.
+5. Airflow moves the files from `landing` to `processing`.
+6. Snowflake loads the files into the raw tables:
+   `CUSTOMER_RAW` and `ORDERS_RAW`.
+7. SQL transformations join and clean the raw data.
+8. The final analytics table `ORDER_CUSTOMER_DATE_PRICE` is created for reporting.
+9. After the run finishes, the files are moved into the processed archive.
 
-### 📊 **For Data Teams**
-- Reduce ETL development time by **75%**
-- Automated data quality checks
-- Self-healing pipeline architecture
-- Real-time monitoring & alerting
+### How To Read The Architecture
 
-</td>
-<td width="50%">
+- left side: raw customer and order files begin the pipeline
+- middle: AWS and Airflow handle ingestion, staging, and orchestration
+- right side: Snowflake loads, transforms, and creates the final reporting table
+- last step: processed files are archived for audit and recovery
 
-### 💼 **For Business**
-- **Instant insights** from streaming data
-- **99.9% uptime** reliability
-- **Reduced costs** with efficient resource usage
-- **Faster decision-making** with real-time analytics
+## Demo Screens
 
-</td>
-</tr>
-</table>
+For walkthroughs and presentations, illustrative Airflow and Snowflake screenshots can be generated from this repository's actual pipeline structure.
 
----
+These should be treated as visual mockups unless they are captured from a live Airflow or Snowflake environment.
 
-## 🏗️ Architecture
+The screenshots should match the implementation in this repository:
 
-### High-Level Data Flow
+- an Airflow DAG named `customer_orders_datapipeline_dynamic_batch_id`
+- customer and order branches loading in parallel
+- final transform step producing `ORDER_CUSTOMER_DATE_PRICE`
+- Snowflake raw tables named `CUSTOMER_RAW` and `ORDERS_RAW`
 
-```mermaid
-flowchart TB
-    subgraph "Data Generation"
-        A[EC2 Instance<br/>Python Generator] 
-    end
-    
-    subgraph "Real-Time Ingestion"
-        B[Kinesis Agent]
-        C[Kinesis Firehose]
-    end
-    
-    subgraph "Data Lake - S3"
-        D[Landing Zone]
-        E[Processing Zone]
-        F[Processed Zone]
-    end
-    
-    subgraph "Orchestration"
-        G[Apache Airflow<br/>MWAA]
-    end
-    
-    subgraph "Data Warehouse"
-        H[Snowflake Staging]
-        I[Snowflake Analytics]
-    end
-    
-    A -->|Stream| B
-    B -->|Capture| C
-    C -->|Deliver| D
-    D -->|ETL| G
-    G -->|Transform| E
-    E -->|Clean| F
-    F -->|Load| H
-    H -->|Merge| I
-    I -->|Query| J[BI Dashboards]
-    
-    style A fill:#ff9999
-    style C fill:#99ccff
-    style G fill:#99ff99
-    style I fill:#ffcc99
+## Repository Structure
+
+```text
+Retail-Sales-Data-Preparation-Pipeline/
+├── dags/
+│   └── customer_orders_pipeline.py
+├── demo/
+│   ├── local_demo.py
+│   └── sample_data/
+├── sql/
+│   └── snowflake_setup.sql
+├── assets/
+│   └── architecture-overview.png
+├── DEMO.md
+├── requirements.txt
+├── .gitignore
+└── README.md
 ```
 
-### 🔄 Pipeline Components
+## Key Files
 
-| Component | Purpose | Technology | SLA |
-|-----------|---------|------------|-----|
-| **Data Source** | Generate streaming events | EC2 + Python | 99.9% |
-| **Ingestion** | Capture & buffer streams | Kinesis Firehose | 99.99% |
-| **Storage** | Data lake with zones | S3 | 99.999999999% |
-| **Orchestration** | ETL workflow management | Airflow (MWAA) | 99.9% |
-| **Warehouse** | Analytics & reporting | Snowflake | 99.9% |
-| **Monitoring** | Pipeline health & metrics | CloudWatch | Real-time |
+### `dags/customer_orders_pipeline.py`
 
----
+The Airflow DAG that:
 
-## 🚀 Quick Start
+- moves files between S3 zones with `aws s3 mv`
+- runs Snowflake `COPY INTO` commands
+- executes a downstream SQL transformation
 
-### Prerequisites
+### `sql/snowflake_setup.sql`
 
-<table>
-<tr>
-<td>
+Setup SQL for:
 
-✅ **AWS Account** with appropriate permissions  
-✅ **Snowflake Account** (trial works)  
-✅ **Python 3.8+** installed locally  
-✅ **AWS CLI** configured  
+- storage integration
+- Snowflake stages
+- raw tables
+- the final transformed table
 
-</td>
-<td>
+### `demo/local_demo.py`
 
-✅ **Terraform** (optional, for IaC)  
-✅ **Docker** (for local testing)  
-✅ **Git** for version control  
-✅ **VS Code** or preferred IDE  
+A local runner that mirrors the same batch flow with:
 
-</td>
-</tr>
-</table>
+- sample CSV files
+- local folders that imitate the S3 layout
+- SQLite tables that imitate the Snowflake load and transform steps
 
-### 🛠️ Setup in 5 Minutes!
+## Airflow Flow
 
-#### 1️⃣ Clone & Configure
+The DAG contains these main stages:
+
+1. move customer files from S3 landing to processing
+2. move order files from S3 landing to processing
+3. load `CUSTOMER_RAW`
+4. load `ORDERS_RAW`
+5. move both datasets to the processed zone
+6. create a joined customer-order summary in Snowflake
+
+The customer and order branches run in parallel until the final transform step, which depends on both raw tables being loaded.
+
+## Snowflake Output
+
+The final table created by the transformation step is:
+
+- `ORDER_CUSTOMER_DATE_PRICE`
+
+This table stores:
+
+- `CUSTOMER_NAME`
+- `ORDER_DATE`
+- `ORDER_TOTAL_PRICE`
+- `BATCH_ID`
+
+It is a simple example of turning raw event-style data into a business-friendly reporting table.
+
+## Run The Project
+
+There are two practical ways to review this repository.
+
+### Local Demo
+
+Run the local demo if you want to inspect the pipeline behavior without AWS, Airflow, or Snowflake access.
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/snowflake-kinesis-airflow.git
-cd snowflake-kinesis-airflow
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your AWS and Snowflake credentials
+python3 demo/local_demo.py
 ```
 
-#### 2️⃣ Deploy AWS Infrastructure
-
-```bash
-# Using Terraform (recommended)
-cd infrastructure/
-terraform init
-terraform plan
-terraform apply
-
-# Or use AWS CLI scripts
-./scripts/deploy-aws-resources.sh
-```
+This creates:
 
-#### 3️⃣ Configure Snowflake
+- `demo_artifacts/firehose/...` to show file movement across zones
+- `demo_artifacts/pipeline_demo.db` for the local warehouse state
+- `demo_artifacts/order_customer_date_price.csv` for the final output
 
-```sql
--- Run in Snowflake
-USE ROLE ACCOUNTADMIN;
+More detail is in [DEMO.md](/home/vikram/Downloads/Test_Github_repo_update/Real-Time-Data-Pipeline/DEMO.md:1).
 
--- Create warehouse and database
-CREATE WAREHOUSE IF NOT EXISTS STREAMING_WH 
-  WAREHOUSE_SIZE = 'X-SMALL' 
-  AUTO_SUSPEND = 60;
-  
-CREATE DATABASE IF NOT EXISTS STREAMING_DB;
-CREATE SCHEMA IF NOT EXISTS RAW_DATA;
+### Airflow / Snowflake Run
 
--- Set up storage integration
-CREATE STORAGE INTEGRATION s3_integration
-  TYPE = EXTERNAL_STAGE
-  STORAGE_PROVIDER = S3
-  ENABLED = TRUE
-  STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::YOUR_ACCOUNT:role/snowflake-s3-role'
-  STORAGE_ALLOWED_LOCATIONS = ('s3://your-bucket/processed/');
-```
+Run the real DAG in Airflow or MWAA if you want to exercise the cloud-backed version.
 
-#### 4️⃣ Start Data Generation
+- place customer and order files in the S3 landing paths
+- configure the Snowflake connection in Airflow
+- trigger the DAG manually
+- inspect the raw and final Snowflake tables after the run
 
-```bash
-# SSH into EC2 instance
-ssh -i your-key.pem ec2-user@your-instance-ip
+## Configuration
 
-# Start the data generator
-python3 customer_order_raw_insert.py --rate 100 --duration infinite
-```
-
-#### 5️⃣ Deploy Airflow DAG
+The DAG reads configuration from environment variables when available:
 
-```python
-# Copy DAG to Airflow
-aws s3 cp dags/streaming_etl_dag.py s3://your-mwaa-bucket/dags/
-
-# Trigger DAG
-aws mwaa create-cli-token --name your-environment
-# Use token to trigger DAG via Airflow UI
-```
+- `SNOWFLAKE_CONN_ID`
+- `PIPELINE_S3_BUCKET`
+- `SNOWFLAKE_WAREHOUSE`
+- `SNOWFLAKE_DATABASE`
+- `SNOWFLAKE_SCHEMA`
+- `SNOWFLAKE_ROLE`
 
----
-
-## 📊 Data Pipeline Zones
-
-### 🏞️ Three-Zone Architecture
-
-<div align="center">
-
-| Zone | Purpose | Format | Retention | Processing |
-|------|---------|--------|-----------|------------|
-| **🛬 Landing** | Raw data ingestion | JSON/CSV | 7 days | None |
-| **⚙️ Processing** | Data transformation | Parquet | 30 days | Cleaning, Validation |
-| **✅ Processed** | Analytics-ready | Parquet | 90 days | Aggregated, Enriched |
-
-</div>
-
-### 📁 S3 Structure
-
-```
-s3://your-data-lake/
-├── 📂 landing/
-│   └── year=2024/month=01/day=15/hour=14/
-│       └── firehose_output_*.json
-├── 📂 processing/
-│   └── year=2024/month=01/day=15/
-│       └── processed_*.parquet
-└── 📂 processed/
-    └── year=2024/month=01/day=15/
-        └── final_*.parquet
-```
-
----
-
-## 🎮 Features & Capabilities
-
-### Core Features
-
-- ✨ **Real-Time Streaming**: Process millions of events per second
-- 🔄 **Auto-Scaling**: Dynamically adjust resources based on load
-- 🛡️ **Data Quality Checks**: Automated validation and cleansing
-- 📈 **Performance Monitoring**: Real-time metrics and dashboards
-- 🔐 **Security First**: Encryption at rest and in transit
-- 📊 **BI Ready**: Direct integration with Tableau/Power BI
-
-### Advanced Capabilities
-
-- 🤖 **ML Integration**: Ready for real-time ML model scoring
-- 🌍 **Multi-Region**: Support for global data processing
-- 📱 **Alert System**: Slack/Email notifications for anomalies
-- 🔍 **Data Lineage**: Full traceability from source to report
-- ⏰ **Time Travel**: Query historical data states in Snowflake
-- 🎯 **CDC Support**: Change Data Capture for incremental loads
-
----
-
-## 📈 Performance Metrics
-
-<div align="center">
-
-| Metric | Value | Target |
-|--------|-------|--------|
-| **Throughput** | 100K events/sec | ✅ Achieved |
-| **Latency** | < 1 second | ✅ Achieved |
-| **Uptime** | 99.95% | ✅ Exceeding |
-| **Data Quality** | 99.8% accuracy | ✅ Achieved |
-| **Cost Efficiency** | $0.02/GB processed | ✅ Optimized |
-
-</div>
-
----
-
-## 🔧 Configuration
-
-### Environment Variables
-
-```bash
-# AWS Configuration
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-S3_BUCKET=your-data-lake
-KINESIS_STREAM_NAME=customer-orders
-
-# Snowflake Configuration
-SNOWFLAKE_ACCOUNT=your_account
-SNOWFLAKE_USER=streaming_user
-SNOWFLAKE_PASSWORD=secure_password
-SNOWFLAKE_WAREHOUSE=STREAMING_WH
-SNOWFLAKE_DATABASE=STREAMING_DB
-
-# Airflow Configuration
-AIRFLOW_CONN_SNOWFLAKE=snowflake://user:pass@account/database
-AIRFLOW_CONN_AWS=aws://
-```
-
-### Airflow DAG Configuration
-
-```python
-# dag_config.py
-DAG_CONFIG = {
-    'schedule_interval': '@hourly',
-    'max_active_runs': 1,
-    'catchup': False,
-    'retries': 3,
-    'retry_delay': timedelta(minutes=5),
-    'email_on_failure': True,
-    'email': ['data-team@company.com']
-}
-```
-
----
-
-## 📊 Sample Queries
-
-### Snowflake Analytics
-
-```sql
--- Real-time order analytics
-SELECT 
-    DATE_TRUNC('hour', order_timestamp) as hour,
-    COUNT(*) as order_count,
-    SUM(order_amount) as total_revenue,
-    AVG(order_amount) as avg_order_value
-FROM processed_orders
-WHERE order_timestamp >= DATEADD('day', -7, CURRENT_TIMESTAMP())
-GROUP BY 1
-ORDER BY 1 DESC;
+If these are not set, the DAG falls back to the default values currently shown in the source file.
 
--- Customer behavior analysis
-WITH customer_metrics AS (
-    SELECT 
-        customer_id,
-        COUNT(DISTINCT order_id) as order_count,
-        SUM(order_amount) as lifetime_value,
-        DATEDIFF('day', MIN(order_timestamp), MAX(order_timestamp)) as customer_lifetime
-    FROM processed_orders
-    GROUP BY customer_id
-)
-SELECT 
-    CASE 
-        WHEN lifetime_value > 1000 THEN 'High Value'
-        WHEN lifetime_value > 500 THEN 'Medium Value'
-        ELSE 'Low Value'
-    END as customer_segment,
-    COUNT(*) as customer_count,
-    AVG(lifetime_value) as avg_ltv
-FROM customer_metrics
-GROUP BY 1;
-```
-
----
+## Prerequisites
 
-## 🛡️ Security & Compliance
+- AWS account with access to S3 and the streaming setup you want to use
+- Airflow or MWAA environment
+- Snowflake account
+- AWS CLI available in the Airflow runtime
 
-### Security Features
+## Current Scope
 
-- 🔐 **End-to-End Encryption**: TLS 1.2+ for data in transit
-- 🔑 **IAM Role-Based Access**: Principle of least privilege
-- 📝 **Audit Logging**: Complete trail of all data operations
-- 🛡️ **VPC Isolation**: Private subnets for compute resources
-- 🔒 **Secrets Management**: AWS Secrets Manager integration
-- ✅ **Compliance Ready**: GDPR, HIPAA, SOC 2 compatible
+This repository currently contains:
 
----
+- the DAG logic
+- the Snowflake setup SQL
+- a local demo runner with sample data
+- an architecture diagram
 
-## 📸 Screenshots
+It does not currently include:
 
-<div align="center">
+- Terraform or CloudFormation for infrastructure provisioning
+- test suites
+- CI/CD workflows
+- a dashboard UI
+- monitoring and alerting code
+- production deployment scripts
 
-### Airflow Dashboard
-<img src="./images/airflow-dashboard.png" alt="Airflow Dashboard" width="700">
+## Notes For Reviewers
 
-### Snowflake Query Results
-<img src="./images/snowflake-results.png" alt="Snowflake Results" width="700">
+The strongest files to review first are:
 
-### CloudWatch Monitoring
-<img src="./images/cloudwatch-metrics.png" alt="CloudWatch Metrics" width="700">
+- [dags/customer_orders_pipeline.py](/home/vikram/Downloads/Test_Github_repo_update/Real-Time-Data-Pipeline/dags/customer_orders_pipeline.py:1) for orchestration logic
+- [sql/snowflake_setup.sql](/home/vikram/Downloads/Test_Github_repo_update/Real-Time-Data-Pipeline/sql/snowflake_setup.sql:1) for warehouse objects
+- [demo/local_demo.py](/home/vikram/Downloads/Test_Github_repo_update/Real-Time-Data-Pipeline/demo/local_demo.py:1) for the local end-to-end walkthrough
 
-</div>
+## Next Steps
 
----
+Reasonable next additions for this project would be:
 
-## 🚦 Monitoring & Alerting
-
-### Key Metrics to Track
-
-```python
-# monitoring/metrics.py
-CRITICAL_METRICS = {
-    'kinesis_incoming_records': {'threshold': 1000, 'period': '5min'},
-    'airflow_dag_success_rate': {'threshold': 95, 'period': '1hour'},
-    's3_put_requests': {'threshold': 10000, 'period': '5min'},
-    'snowflake_query_performance': {'threshold': '30sec', 'query_type': 'load'},
-    'data_freshness': {'threshold': '15min', 'measurement': 'end_to_end'}
-}
-```
-
----
-
-## 🧪 Testing
-
-```bash
-# Run unit tests
-pytest tests/unit/
-
-# Run integration tests
-pytest tests/integration/ --env=staging
-
-# Load testing with Locust
-locust -f tests/load/locustfile.py --host=http://your-endpoint
-```
-
----
-
-## 📚 Documentation
-
-- 📖 [Architecture Deep Dive](./docs/architecture.md)
-- 🔧 [Setup Guide](./docs/setup.md)
-- 📊 [Data Schema](./docs/schema.md)
-- 🚀 [Deployment Guide](./docs/deployment.md)
-- 🐛 [Troubleshooting](./docs/troubleshooting.md)
-- 📈 [Performance Tuning](./docs/performance.md)
-
----
-
-## 🗺️ Roadmap
-
-### Q1 2024
-- [x] Core pipeline implementation
-- [x] Snowflake integration
-- [x] Basic monitoring
-
-### Q2 2024
-- [ ] Machine Learning pipeline
-- [ ] Real-time anomaly detection
-- [ ] Advanced data quality framework
-
-### Q3 2024
-- [ ] Multi-cloud support (Azure, GCP)
-- [ ] GraphQL API for data access
-- [ ] Kubernetes deployment option
-
-### Q4 2024
-- [ ] AI-powered data cataloging
-- [ ] Automated cost optimization
-- [ ] Real-time data mesh integration
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-```bash
-# Fork, clone, and create a feature branch
-git checkout -b feature/amazing-feature
-
-# Make your changes and commit
-git commit -m 'Add amazing feature'
-
-# Push and create a Pull Request
-git push origin feature/amazing-feature
-```
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 👨‍💻 Author
-
-<div align="center">
-
-### **VIKRAM KAVURI**
-*Data Engineer | Data Analyst | Data Analytics Engineer*
-
-[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vikramkavuri)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/thrivikrama-rao-kavuri-7290b6147/)
-[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:thrivikr@buffalo.edu)
-
-</div>
-
----
-
-## 🙏 Acknowledgments
-
-- AWS Team for excellent documentation and support
-- Apache Airflow community for the amazing orchestration platform
-- Snowflake for revolutionary cloud data warehousing
-- Open source contributors who make projects like this possible
-
----
-
-<div align="center">
-
-### ⭐ Star this repo if you find it helpful!
-
-**Building the data pipelines of tomorrow, today!** 🚀
-
-*Real-time insights. Unlimited scale. Zero complexity.*
-
-</div>
+1. add a small test suite for the DAG structure and transform logic
+2. add Airflow and Snowflake screenshots from a real run
+3. add infrastructure-as-code for the AWS resources
+4. add data quality checks around the raw loads

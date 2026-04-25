@@ -1,0 +1,4 @@
+101,1,F,173665.47,2024-01-03,5-LOW,Clerk#000000951,0,First closed order
+102,2,O,46929.18,2024-01-04,1-URGENT,Clerk#000000880,0,Open order excluded from final table
+103,1,F,193846.25,2024-01-05,2-HIGH,Clerk#000000955,0,Second closed order
+104,3,F,32151.78,2024-01-05,3-MEDIUM,Clerk#000000124,0,Closed order for customer three
