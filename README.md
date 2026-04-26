@@ -55,18 +55,21 @@ The image above shows the flow from raw input to final reporting output.
 - right side: Snowflake loads, transforms, and creates the final reporting table
 - last step: processed files are archived for audit and recovery
 
-## Demo Screens
+## Pipeline Screens
 
-For walkthroughs and presentations, illustrative Airflow and Snowflake screenshots can be generated from this repository's actual pipeline structure.
+The following screenshots are illustrative mockups based on the pipeline structure implemented in this repository.
 
-These should be treated as visual mockups unless they are captured from a live Airflow or Snowflake environment.
+### Airflow DAG View
 
-The screenshots should match the implementation in this repository:
+![Airflow DAG View](assets/airflow-ui-mock.png)
 
-- an Airflow DAG named `customer_orders_datapipeline_dynamic_batch_id`
-- customer and order branches loading in parallel
-- final transform step producing `ORDER_CUSTOMER_DATE_PRICE`
-- Snowflake raw tables named `CUSTOMER_RAW` and `ORDERS_RAW`
+This view reflects the DAG structure in `customer_orders_datapipeline_dynamic_batch_id`, where customer and order branches run in parallel before converging on the final transform step.
+
+### Snowflake Worksheet View
+
+![Snowflake Worksheet View](assets/snowflake-ui-mock.png)
+
+This view represents the Snowflake side of the project, where raw tables are loaded and transformed into the final reporting table `ORDER_CUSTOMER_DATE_PRICE`.
 
 ## Repository Structure
 
@@ -74,14 +77,12 @@ The screenshots should match the implementation in this repository:
 Retail-Sales-Data-Preparation-Pipeline/
 ├── dags/
 │   └── customer_orders_pipeline.py
-├── demo/
-│   ├── local_demo.py
-│   └── sample_data/
 ├── sql/
 │   └── snowflake_setup.sql
 ├── assets/
-│   └── architecture-overview.png
-├── DEMO.md
+│   ├── airflow-ui-mock.png
+│   ├── architecture-overview.png
+│   └── snowflake-ui-mock.png
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -105,14 +106,6 @@ Setup SQL for:
 - Snowflake stages
 - raw tables
 - the final transformed table
-
-### `demo/local_demo.py`
-
-A local runner that mirrors the same batch flow with:
-
-- sample CSV files
-- local folders that imitate the S3 layout
-- SQLite tables that imitate the Snowflake load and transform steps
 
 ## Airflow Flow
 
@@ -142,35 +135,6 @@ This table stores:
 
 It is a simple example of turning raw event-style data into a business-friendly reporting table.
 
-## Run The Project
-
-There are two practical ways to review this repository.
-
-### Local Demo
-
-Run the local demo if you want to inspect the pipeline behavior without AWS, Airflow, or Snowflake access.
-
-```bash
-python3 demo/local_demo.py
-```
-
-This creates:
-
-- `demo_artifacts/firehose/...` to show file movement across zones
-- `demo_artifacts/pipeline_demo.db` for the local warehouse state
-- `demo_artifacts/order_customer_date_price.csv` for the final output
-
-More detail is in [DEMO.md](/home/vikram/Downloads/Test_Github_repo_update/Real-Time-Data-Pipeline/DEMO.md:1).
-
-### Airflow / Snowflake Run
-
-Run the real DAG in Airflow or MWAA if you want to exercise the cloud-backed version.
-
-- place customer and order files in the S3 landing paths
-- configure the Snowflake connection in Airflow
-- trigger the DAG manually
-- inspect the raw and final Snowflake tables after the run
-
 ## Configuration
 
 The DAG reads configuration from environment variables when available:
@@ -197,8 +161,8 @@ This repository currently contains:
 
 - the DAG logic
 - the Snowflake setup SQL
-- a local demo runner with sample data
 - an architecture diagram
+- illustrative Airflow and Snowflake screenshots
 
 It does not currently include:
 
@@ -215,7 +179,6 @@ The strongest files to review first are:
 
 - [dags/customer_orders_pipeline.py](/home/vikram/Downloads/Test_Github_repo_update/Real-Time-Data-Pipeline/dags/customer_orders_pipeline.py:1) for orchestration logic
 - [sql/snowflake_setup.sql](/home/vikram/Downloads/Test_Github_repo_update/Real-Time-Data-Pipeline/sql/snowflake_setup.sql:1) for warehouse objects
-- [demo/local_demo.py](/home/vikram/Downloads/Test_Github_repo_update/Real-Time-Data-Pipeline/demo/local_demo.py:1) for the local end-to-end walkthrough
 
 ## Next Steps
 
